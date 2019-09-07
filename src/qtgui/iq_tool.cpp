@@ -42,7 +42,8 @@ CIqTool::CIqTool(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    is_recording = false;
+    is_file_recording = false;
+    is_streaming = false;
     is_playing = false;
     bytes_per_sample = 8;
     sample_rate = 192000;
@@ -238,7 +239,7 @@ void CIqTool::on_slider_valueChanged(int value)
 /*! \brief Start/stop recording */
 void CIqTool::on_recButton_clicked(bool checked)
 {
-    is_recording = checked;
+    is_file_recording = checked;
 
     if (checked)
     {
@@ -269,8 +270,25 @@ void CIqTool::cancelRecording()
 {
     ui->recButton->setChecked(false);
     ui->playButton->setEnabled(true);
-    is_recording = false;
+    is_file_recording = false;
 }
+
+
+/*! \brief Start/stop UDP streaming */
+void CIqTool::on_streamButton_clicked(bool checked)
+{
+    is_streaming = checked;
+
+    if (checked)
+    {
+        emit startBasebandStreaming(ui->udpHost->text(), ui->udpPort->value());
+    }
+    else
+    {
+        emit stopBasebandStreaming();
+    }
+}
+
 
 /*! \brief Catch window close events.
  *
@@ -307,6 +325,10 @@ void CIqTool::saveSettings(QSettings *settings)
     else
         settings->remove("baseband/rec_dir");
 
+    // Baseband IQ streaming
+    settings->setValue("baseband/stream_udp_host", ui->udpHost->text());
+    settings->setValue("baseband/stream_udp_port", ui->udpPort->value());
+
 }
 
 void CIqTool::readSettings(QSettings *settings)
@@ -317,6 +339,12 @@ void CIqTool::readSettings(QSettings *settings)
     // Location of baseband recordings
     QString dir = settings->value("baseband/rec_dir", QDir::homePath()).toString();
     ui->recDirEdit->setText(dir);
+
+    // Baseband IQ streaming
+    QString streamUdpHost = settings->value("baseband/stream_udp_host", QString("localhost")).toString();
+    ui->udpHost->setText(streamUdpHost);
+    int streamUdpPort = settings->value("baseband/stream_udp_port", 7366).toInt();
+    ui->udpPort->setValue(streamUdpPort);
 }
 
 
@@ -368,7 +396,7 @@ void CIqTool::timeoutFunction(void)
             refreshTimeWidgets();
         }
     }
-    if (is_recording)
+    if (is_file_recording)
         refreshTimeWidgets();
 }
 
@@ -386,7 +414,7 @@ void CIqTool::refreshDir()
     ui->listWidget->setCurrentRow(selection);
     ui->listWidget->blockSignals(false);
 
-    if (is_recording)
+    if (is_file_recording)
     {
         // update rec_len; if the file being recorded is the one selected
         // in the list, the length will update periodically

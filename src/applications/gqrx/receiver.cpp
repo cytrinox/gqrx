@@ -68,6 +68,7 @@ receiver::receiver(const std::string input_device,
       d_filter_offset(0.0),
       d_cw_offset(0.0),
       d_recording_iq(false),
+      d_streaming_iq(false),
       d_recording_wav(false),
       d_sniffer_active(false),
       d_iq_rev(false),
@@ -112,9 +113,13 @@ receiver::receiver(const std::string input_device,
 
 
     // create I/Q sink and close it
-    iq_sink = gr::blocks::file_sink::make(sizeof(gr_complex), get_null_file().c_str(), true);
-    iq_sink->set_unbuffered(true);
-    iq_sink->close();
+    iq_file_sink = gr::blocks::file_sink::make(sizeof(gr_complex), get_null_file().c_str(), true);
+    iq_file_sink->set_unbuffered(true);
+    iq_file_sink->close();
+
+    iq_udp_sink = gr::blocks::udp_sink::make(sizeof(gr_complex), "192.168.1.63", 2228, 1472, true);
+    //iq_udp_sink->set_unbuffered(true);
+    //iq_udp_sink->close();
 
     rx = make_nbrx(d_quad_rate, d_audio_rate);
     lo = gr::analog::sig_source_c::make(d_quad_rate, gr::analog::GR_SIN_WAVE,
@@ -1140,18 +1145,18 @@ receiver::status receiver::start_iq_recording(const std::string filename)
     }
 
     // iq_sink was created in the constructor
-    if (iq_sink) {
+    if (iq_file_sink) {
         tb->lock();
-        if (!iq_sink->open(filename.c_str()))
+        if (!iq_file_sink->open(filename.c_str()))
         {
             status = STATUS_ERROR;
         }
         else
         {
             if (d_decim >= 2)
-                tb->connect(input_decim, 0, iq_sink, 0);
+                tb->connect(input_decim, 0, iq_file_sink, 0);
             else
-                tb->connect(src, 0, iq_sink, 0);
+                tb->connect(src, 0, iq_file_sink, 0);
 
             d_recording_iq = true;
         }
@@ -1174,12 +1179,12 @@ receiver::status receiver::stop_iq_recording()
     }
 
     tb->lock();
-    iq_sink->close();
+    iq_file_sink->close();
 
     if (d_decim >= 2)
-        tb->disconnect(input_decim, 0, iq_sink, 0);
+        tb->disconnect(input_decim, 0, iq_file_sink, 0);
     else
-        tb->disconnect(src, 0, iq_sink, 0);
+        tb->disconnect(src, 0, iq_file_sink, 0);
 
     tb->unlock();
     d_recording_iq = false;
@@ -1209,6 +1214,65 @@ receiver::status receiver::seek_iq_file(long pos)
     tb->unlock();
 
     return status;
+}
+
+/**
+ * @brief Start I/Q streaming.
+ * @param udp_host The hostname/IP to connect
+ * @param udp_port The port number
+ */
+receiver::status receiver::start_iq_streaming(const std::string udp_host, int udp_port)
+{
+    receiver::status status = STATUS_OK;
+
+    if (d_streaming_iq) {
+        std::cout << __func__ << ": already streaming" << std::endl;
+        return STATUS_ERROR;
+    }
+
+    // iq_udp_sink was created in the constructor
+    if (iq_udp_sink) {
+
+        tb->lock();
+        iq_udp_sink->connect(udp_host, udp_port);
+
+        if (d_decim >= 2)
+            tb->connect(input_decim, 0, iq_udp_sink, 0);
+        else
+            tb->connect(src, 0, iq_udp_sink, 0);
+
+        d_streaming_iq = true;
+
+        tb->unlock();
+    }
+    else {
+        std::cout << __func__ << ": I/Q UDP sink does not exist" << std::endl;
+        return STATUS_ERROR;
+    }
+
+    return status;
+}
+
+/** Stop I/Q data streaming. */
+receiver::status receiver::stop_iq_streaming()
+{
+    if (!d_streaming_iq) {
+        /* error: we are not streaming */
+        return STATUS_ERROR;
+    }
+
+    tb->lock();
+    iq_udp_sink->disconnect();
+
+    if (d_decim >= 2)
+        tb->disconnect(input_decim, 0, iq_udp_sink, 0);
+    else
+        tb->disconnect(src, 0, iq_udp_sink, 0);
+
+    tb->unlock();
+    d_streaming_iq = false;
+
+    return STATUS_OK;
 }
 
 /**
@@ -1368,9 +1432,17 @@ void receiver::connect_all(rx_chain type)
     if (d_recording_iq)
     {
         if (d_decim >= 2)
-            tb->connect(input_decim, 0, iq_sink, 0);
+            tb->connect(input_decim, 0, iq_file_sink, 0);
         else
-            tb->connect(src, 0, iq_sink, 0);
+            tb->connect(src, 0, iq_file_sink, 0);
+    }
+
+    if (d_streaming_iq)
+    {
+        if (d_decim >= 2)
+            tb->connect(input_decim, 0, iq_udp_sink, 0);
+        else
+            tb->connect(src, 0, iq_udp_sink, 0);
     }
 
     if (d_recording_wav)

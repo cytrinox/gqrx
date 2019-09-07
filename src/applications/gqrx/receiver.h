@@ -205,6 +205,10 @@ public:
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
 
+    /* I/Q UDP streaming */
+    status      start_iq_streaming(const std::string udp_host, int udp_port);
+    status      stop_iq_streaming();
+
     /* sample sniffer */
     status      start_sniffer(unsigned int samplrate, int buffsize);
     status      stop_sniffer();
@@ -233,6 +237,7 @@ private:
     double      d_filter_offset;    /*!< Current filter offset */
     double      d_cw_offset;        /*!< CW offset */
     bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
+    bool        d_streaming_iq;     /*!< Whether we are streaming I/Q data over UDP. */
     bool        d_recording_wav;    /*!< Whether we are recording WAV file. */
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
@@ -262,7 +267,8 @@ private:
     gr::blocks::multiply_const_ff::sptr audio_gain0; /*!< Audio gain block. */
     gr::blocks::multiply_const_ff::sptr audio_gain1; /*!< Audio gain block. */
 
-    gr::blocks::file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
+    gr::blocks::file_sink::sptr         iq_file_sink;   /*!< I/Q file sink. */
+    gr::blocks::udp_sink::sptr          iq_udp_sink;    /*!< I/Q UDP sink. */
 
     gr::blocks::wavfile_sink::sptr      wav_sink;   /*!< WAV file sink for recording. */
     gr::blocks::wavfile_source::sptr    wav_src;    /*!< WAV file source for playback. */
