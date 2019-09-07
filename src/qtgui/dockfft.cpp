@@ -259,6 +259,12 @@ void DockFft::saveSettings(QSettings *settings)
     else
         settings->remove("db_ranges_locked");
 
+    // Band Info.
+    if (ui->bandinfoCheckbox->isChecked())
+        settings->setValue("bandinfo", true);
+    else
+        settings->remove("bandinfo");
+
     settings->endGroup();
 }
 
@@ -321,6 +327,10 @@ void DockFft::readSettings(QSettings *settings)
 
     bool_val = settings->value("db_ranges_locked", false).toBool();
     ui->lockButton->setChecked(bool_val);
+
+    bool_val = settings->value("bandinfo", false).toBool();
+    ui->bandinfoCheckbox->setChecked(bool_val);
+    emit bandfinfoChanged(bool_val);
 
     settings->endGroup();
 }
@@ -493,6 +503,20 @@ void DockFft::on_peakHoldButton_toggled(bool checked)
 void DockFft::on_peakDetectionButton_toggled(bool checked)
 {
     emit peakDetectionToggled(checked);
+}
+
+/** bandinfo checkbox toggled */
+void DockFft::on_bandinfoCheckbox_stateChanged(int state)
+{
+    bool checked = true;
+
+    if (state == 2) {
+        checked = true;
+    } else {
+        checked = false;
+    }
+
+    emit bandfinfoChanged(checked);
 }
 
 /** lock button toggled */
