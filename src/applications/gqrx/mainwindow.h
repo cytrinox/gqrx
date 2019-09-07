@@ -177,6 +177,10 @@ private slots:
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
 
+    /* I/Q streaming */
+    void startIqStreaming(const QString udp_host, int udp_port);
+    void stopIqStreaming();
+
     /* FFT settings */
     void setIqFftSize(int size);
     void setIqFftRate(int fps);

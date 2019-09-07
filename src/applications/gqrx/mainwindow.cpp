@@ -262,6 +262,10 @@ MainWindow::MainWindow(const QString cfgfile, bool edit_conf, QWidget *parent) :
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
 
+    // I/Q streaming
+    connect(iq_tool, SIGNAL(startBasebandStreaming(QString, int)), this, SLOT(startIqStreaming(QString, int)));
+    connect(iq_tool, SIGNAL(stopBasebandStreaming()), this, SLOT(stopIqStreaming()));
+
     // remote control
     connect(remote, SIGNAL(newFilterOffset(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(remote, SIGNAL(newFilterOffset(qint64)), uiDockRxOpt, SLOT(setFilterOffset(qint64)));
@@ -1436,6 +1440,27 @@ void MainWindow::startAudioStream(const QString udp_host, int udp_port)
 void MainWindow::stopAudioStreaming()
 {
     rx->stop_udp_streaming();
+}
+
+
+/** Start I/Q UDP streaming. */
+void MainWindow::startIqStreaming(const QString udp_host, int udp_port)
+{
+    qDebug() << __func__;
+    rx->start_iq_streaming(udp_host.toStdString(), udp_port);
+    ui->statusBar->showMessage(tr("Streaming I/Q data via UDP to: %1:%2").arg(udp_host).arg(udp_port),
+                               5000);
+}
+
+/** Stop current I/Q UDP streaming. */
+void MainWindow::stopIqStreaming()
+{
+    qDebug() << __func__;
+
+    if (rx->stop_iq_streaming())
+        ui->statusBar->showMessage(tr("Error stopping I/Q streaming"));
+    else
+        ui->statusBar->showMessage(tr("I/Q data streaming stopped"), 5000);
 }
 
 /** Start I/Q recording. */

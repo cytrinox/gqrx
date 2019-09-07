@@ -68,6 +68,9 @@ signals:
     void stopPlayback();
     void seek(qint64 seek_pos);
 
+    void startBasebandStreaming(const QString udp_host, int udp_port);
+    void stopBasebandStreaming();
+
 public slots:
     void cancelRecording();
     void cancelPlayback();
@@ -80,6 +83,7 @@ private slots:
     void on_plotButton_clicked();
     void on_slider_valueChanged(int value);
     void on_listWidget_currentTextChanged(const QString &currentText);
+    void on_streamButton_clicked(bool checked);
     void timeoutFunction(void);
 
 private:
@@ -97,7 +101,8 @@ private:
 
     QString current_file;      /*!< Selected file in file browser. */
 
-    bool    is_recording;
+    bool    is_file_recording;
+    bool    is_streaming;
     bool    is_playing;
     int     bytes_per_sample;  /*!< Bytes per sample (fc = 4) */
     int     sample_rate;       /*!< Current sample rate. */
