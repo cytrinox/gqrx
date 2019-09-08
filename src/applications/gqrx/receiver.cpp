@@ -1232,10 +1232,9 @@ receiver::status receiver::start_iq_streaming(const std::string udp_host, int ud
 
     // iq_udp_sink was created in the constructor
     if (iq_udp_sink) {
-
-        tb->lock();
         iq_udp_sink->connect(udp_host, udp_port);
 
+        tb->lock();
         if (d_decim >= 2)
             tb->connect(input_decim, 0, iq_udp_sink, 0);
         else
