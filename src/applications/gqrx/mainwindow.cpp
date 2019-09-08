@@ -1434,7 +1434,17 @@ void MainWindow::stopAudioPlayback()
 /** Start streaming audio over UDP. */
 void MainWindow::startAudioStream(const QString udp_host, int udp_port)
 {
-    rx->start_udp_streaming(udp_host.toStdString(), udp_port);
+    try
+    {
+        rx->start_udp_streaming(udp_host.toStdString(), udp_port);
+    }
+    catch(std::exception &e)
+    {
+        QMessageBox::critical(this,
+                              tr("Error"),
+                              tr("There was an error streaming audio over UDP: %1").arg(e.what()));
+    }
+
 }
 
 /** Stop streaming audio over UDP. */
@@ -1448,9 +1458,18 @@ void MainWindow::stopAudioStreaming()
 void MainWindow::startIqStreaming(const QString udp_host, int udp_port)
 {
     qDebug() << __func__;
-    rx->start_iq_streaming(udp_host.toStdString(), udp_port);
-    ui->statusBar->showMessage(tr("Streaming I/Q data via UDP to: %1:%2").arg(udp_host).arg(udp_port),
-                               5000);
+    try
+    {
+        rx->start_iq_streaming(udp_host.toStdString(), udp_port);
+        ui->statusBar->showMessage(tr("Streaming I/Q data via UDP to: %1:%2").arg(udp_host).arg(udp_port),
+                                   5000);
+    }
+    catch(std::exception &e)
+    {
+        QMessageBox::critical(this,
+                              tr("Error"),
+                              tr("There was an error streaming audio over UDP: %1").arg(e.what()));
+    }
 }
 
 /** Stop current I/Q UDP streaming. */
